@@ -1,0 +1,146 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title id="detailPageTitle">Chi tiết bài hát</title>
+    <style>
+        /* CSS riêng cho trang chi tiết bài hát - Bạn đã có và sẽ giữ nguyên */
+        .song-detail-container {
+            max-width: 900px;
+            margin: 50px auto;
+            background-color: #fff;
+            border-radius: 8px;
+            box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1);
+            padding: 30px;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+        }
+        .song-detail-header {
+            text-align: center;
+            margin-bottom: 30px;
+        }
+        .song-detail-header h2 {
+            font-size: 2.5rem;
+            margin-bottom: 10px;
+            color: #333;
+        }
+        .song-detail-header p {
+            font-size: 1.2rem;
+            color: #666;
+        }
+        .song-detail-cover {
+            width: 300px;
+            height: 300px;
+            object-fit: cover;
+            border-radius: 10px;
+            box-shadow: 0 4px 10px rgba(0, 0, 0, 0.2);
+            margin-bottom: 30px;
+        }
+        .song-detail-player {
+            width: 100%;
+            max-width: 600px;
+            margin-bottom: 30px;
+        }
+        .song-detail-info {
+            text-align: center;
+            margin-bottom: 20px;
+        }
+        .song-detail-info p {
+            font-size: 1.1rem;
+            line-height: 1.6;
+            color: #555;
+        }
+        .related-songs {
+            width: 100%;
+            margin-top: 40px;
+            text-align: center;
+        }
+        .related-songs h3 {
+            font-size: 1.8rem;
+            margin-bottom: 20px;
+            color: #007bff;
+        }
+        .related-song-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fill, minmax(150px, 1fr));
+            gap: 15px;
+            justify-content: center;
+        }
+        .related-song-card {
+            background-color: #f9f9f9;
+            border-radius: 8px;
+            padding: 10px;
+            box-shadow: 0 2px 5px rgba(0,0,0,0.05);
+            text-align: center;
+            cursor: pointer; /* Để người dùng biết có thể click */
+            transition: transform 0.2s ease;
+        }
+        .related-song-card:hover {
+            transform: translateY(-3px);
+        }
+        .related-song-card img {
+            width: 100px;
+            height: 100px;
+            object-fit: cover;
+            border-radius: 5px;
+            margin-bottom: 10px;
+        }
+        .related-song-card h4 {
+            font-size: 1rem;
+            margin: 0;
+            color: #333;
+        }
+        .related-song-card p {
+            font-size: 0.85rem;
+            color: #666;
+        }
+    </style>
+</head>
+<body>
+    <header>
+        <h1><a href="/" style="text-decoration:none; color:white;">Ứng Dụng Nghe Nhạc</a></h1>
+        <nav>
+            <div id="loggedInNav" style="display: none;">
+                Chào mừng, <span id="headerUsernameSpan"></span>!
+                <button id="logoutBtn">Đăng xuất</button>
+            </div>
+            <div id="loggedOutNav">
+                <a href="/login_register.html" class="nav-button">Đăng nhập</a>
+            </div>
+        </nav>
+    </header>
+
+    <main class="container">
+        <div id="song-detail-content" class="song-detail-container">
+            <div class="song-detail-header">
+                <h2 id="detailSongTitle"></h2>
+                <p id="detailSongArtist"></p>
+            </div>
+            <img id="detailSongCover" class="song-detail-cover" alt="Song Cover">
+            <audio id="detailAudioPlayer" controls class="song-detail-player">
+                <source id="detailAudioSource" src="" type="audio/mpeg">
+                Trình duyệt của bạn không hỗ trợ thẻ audio.
+            </audio>
+            <div class="song-detail-info">
+                <p><strong>Thể loại:</strong> <span id="detailSongGenre"></span></p>
+                <p><strong>Mô tả:</strong> <span id="detailSongDescription"></span></p>
+            </div>
+
+            <section class="related-songs">
+                <h3>Các bài hát khác</h3>
+                <div id="relatedSongsContainer" class="related-song-grid">
+                    </div>
+            </section>
+        </div>
+    </main>
+
+    <footer>
+        <p>&copy; 2024 Ứng Dụng Nghe Nhạc</p>
+    </footer>
+
+    <script src="/js_fe/song_detail.js"></script>
+    <script src="/js_fe/index.js"></script>
+</body>
+</html>

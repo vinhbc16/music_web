@@ -1,12 +1,50 @@
 /* public/css/login_register.css */
 /* Các style cho form, button, message */
+body {
+    font-family: 'Arial', sans-serif;
+    margin: 0;
+    padding: 0;
+    background-color: #e7718a89;
+    color: #302f2f;
+    display: flex;
+    flex-direction: column;
+    min-height: 100vh;
+}
+
+/* main.container {
+    flex-grow: 1;
+    max-width: 1200px;
+    margin: 50px auto;
+    padding: 80px;
+    background-color: #e9e5e5;
+    border-radius: 8px;
+    box-shadow: 0 0 15px rgba(0, 0, 0, 0.1);
+} */
+
+.logo-box i {
+    font-size: 70px;
+    color: brown;
+}
+.logo-box span{
+    font-weight: bold;
+    font-size: 20px;
+    color: brown;
+}
+.logo-box .slogan {
+    font-style: italic;
+    color: brown;
+    font-size: 13px;
+    margin-top: 5px;
+    margin-bottom: 30px;
+}
+
 .auth-form-box {
     text-align: center;
     margin: 0 auto;
     max-width: 400px;
+    height: 100vh;
     padding: 20px;
     background-color: #fff;
-    border-radius: 8px;
     box-shadow: 0 0 10px rgba(0, 0, 0, 0.1);
 }
 

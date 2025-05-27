@@ -257,7 +257,20 @@ app.get('/api/songs/:id', async (req, res) => {
         res.status(500).send('Lỗi máy chủ khi lấy chi tiết bài hát.');
     }
 });
+app.get('/songs/:id', (req, res, next) => {
+    console.log(`[SERVER LOG] Yêu cầu đến trang HTML: /songs/${req.params.id}`);
+    const filePath = path.join(__dirname, '..', 'public', 'song_detail.html');
+    console.log(`[SERVER LOG] Đang cố gắng gửi file: ${filePath}`);
 
+    res.sendFile(filePath, (err) => {
+        if (err) {
+            console.error('[SERVER LOG] Lỗi khi gửi file song_detail.html:', err.message);
+            next(err); // Quan trọng: chuyển lỗi cho Express xử lý
+        } else {
+            console.log('[SERVER LOG] Đã gửi file song_detail.html thành công.');
+        }
+    });
+});
 
 // Start server
 app.listen(PORT, () => console.log(`Server đang chạy trên cổng ${PORT}`));

@@ -58,7 +58,7 @@ async function checkLoginStatus() {
 
 // Hàm render danh sách bài hát (giữ nguyên)
 function renderSongs(songs) {
-    songsContainer.innerHTML = ''; 
+    songsContainer.innerHTML = '';
 
     if (songs.length === 0) {
         songsContainer.innerHTML = '<p>Chưa có bài hát nào trong danh sách.</p>';
@@ -68,6 +68,8 @@ function renderSongs(songs) {
     songs.forEach(song => {
         const songCard = document.createElement('div');
         songCard.classList.add('song-card');
+        songCard.dataset.songId = song.id; // Đảm bảo song.id có giá trị đúng
+        songCard.classList.add('clickable-song-card');
 
         const coverArtUrl = song.cover_art_url ? `http://localhost:5000${song.cover_art_url}` : 'https://via.placeholder.com/200?text=No+Cover';
         const musicFileUrl = `http://localhost:5000${song.file_path}`;
@@ -83,7 +85,38 @@ function renderSongs(songs) {
         `;
         songsContainer.appendChild(songCard);
     });
+
+    // CẬP NHẬT PHẦN LẮNG NGHE SỰ KIỆN CLICK DƯỚI ĐÂY
+    document.querySelectorAll('.clickable-song-card').forEach(card => {
+        card.addEventListener('click', (event) => {
+            // Kiểm tra kỹ hơn nếu click vào phần tử con của audio player
+            if (event.target.tagName === 'AUDIO' || event.target.tagName === 'SOURCE' || event.target.closest('audio')) {
+                console.log('[INDEX.JS] Click vào audio player, không điều hướng.');
+                return; // Ngăn chặn điều hướng nếu click vào audio controls
+            }
+
+            const songId = card.dataset.songId;
+            // --- THÊM LOG ĐỂ DEBUG ---
+            console.log('[INDEX.JS - LOG 1] Card được click. songId từ dataset:', songId);
+            console.log('[INDEX.JS - LOG 2] Kiểu dữ liệu của songId:', typeof songId);
+            // -------------------------
+
+            if (songId && String(songId).trim() !== "") { // Kiểm tra songId hợp lệ và không rỗng
+                const targetUrl = `/songs/${songId}`;
+                // --- THÊM LOG ĐỂ DEBUG ---
+                console.log('[INDEX.JS - LOG 3] Chuẩn bị điều hướng đến URL:', targetUrl);
+                // -------------------------
+                window.location.href = targetUrl;
+            } else {
+                // --- THÊM LOG ĐỂ DEBUG ---
+                console.error('[INDEX.JS - LOG 4] songId không hợp lệ hoặc rỗng:', songId, '- Sẽ không điều hướng.');
+                alert('Lỗi: ID bài hát không hợp lệ.');
+                // -------------------------
+            }
+        });
+    });
 }
+
 
 // Hàm fetch danh sách bài hát từ Backend (giữ nguyên)
 async function fetchSongs() {

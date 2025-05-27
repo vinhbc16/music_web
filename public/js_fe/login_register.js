@@ -93,7 +93,7 @@ loginForm.addEventListener('submit', async (e) => {
             localStorage.setItem('jwtToken', data.token); // Lưu token
             showMessage(loginMessage, 'Đăng nhập thành công!');
             // CHUYỂN HƯỚNG SANG TRANG CHỦ KHI ĐĂNG NHẬP THÀNH CÔNG
-            window.location.href = '/index.html'; 
+            window.location.href = '/'; // Thay đổi đường dẫn nếu cần
         } else {
             showMessage(loginMessage, data.msg, true);
         }
