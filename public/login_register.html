@@ -1,0 +1,37 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Đăng nhập hoặc Đăng ký</title>
+    <link rel="stylesheet" href="css/login_register.css"> 
+    <link rel="stylesheet" href="css/index.css"> </head>
+<body>
+    <main class="container">
+        <section id="auth-section">
+            <div id="login-form-container" class="auth-form-box">
+                <h2>Đăng nhập</h2>
+                <form id="loginForm">
+                    <input type="text" id="loginUsername" placeholder="Tên đăng nhập" required>
+                    <input type="password" id="loginPassword" placeholder="Mật khẩu" required>
+                    <button type="submit">Đăng nhập</button>
+                    <p id="loginMessage" class="message"></p>
+                </form>
+                <p>Chưa có tài khoản? <a href="#" id="showRegister">Đăng ký ngay</a></p>
+            </div>
+
+            <div id="register-form-container" class="auth-form-box" style="display: none;">
+                <h2>Đăng ký</h2>
+                <form id="registerForm">
+                    <input type="text" id="registerUsername" placeholder="Tên đăng nhập" required>
+                    <input type="email" id="registerEmail" placeholder="Email" required>
+                    <input type="password" id="registerPassword" placeholder="Mật khẩu" required>
+                    <button type="submit">Đăng ký</button>
+                    <p id="registerMessage" class="message"></p>
+                </form>
+                <p>Đã có tài khoản? <a href="#" id="showLogin">Đăng nhập</a></p>
+            </div>
+        </section>
+    </main>
+    <script src="js_fe/login_register.js"></script> </body>
+</html>

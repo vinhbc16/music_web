@@ -1,0 +1,38 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Web Nghe Nhạc - Trang Chủ</title>
+    <link rel="stylesheet" href="css/index.css"> </head>
+<body>
+    <header>
+        <h1>Ứng Dụng Nghe Nhạc</h1>
+        <nav>
+            <div id="loggedInNav" style="display: none;">
+                Chào mừng, <span id="headerUsernameSpan"></span>! 
+                <button id="logoutBtn">Đăng xuất</button>
+            </div>
+            <div id="loggedOutNav"> <a href="login_register.html" class="nav-button">Đăng nhập</a>
+            </div>
+        </nav>
+    </header>
+
+    <main class="container">
+        <section id="user-dashboard" style="display: none;">
+            <h2>Thông tin cá nhân</h2>
+            <p>Bạn đã đăng nhập thành công!</p>
+        </section>
+
+        <section id="songs-section"> <h2>Danh sách bài hát</h2>
+            <div id="songs-container" class="song-grid">
+                </div>
+        </section>
+    </main>
+
+    <footer>
+        <p>&copy; 2024 Ứng Dụng Nghe Nhạc</p>
+    </footer>
+
+    <script src="js_fe/index.js"></script> </body>
+</html>
