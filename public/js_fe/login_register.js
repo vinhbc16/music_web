@@ -10,9 +10,37 @@ const showLoginLink = document.getElementById('showLogin');
 const loginFormContainer = document.getElementById('login-form-container');
 const registerFormContainer = document.getElementById('register-form-container');
 
+// Thêm các biến cho chức năng quên mật khẩu
+const forgotPasswordForm = document.getElementById('forgotPasswordForm');
+const forgotPasswordMessage = document.getElementById('forgotPasswordMessage');
+const showForgotPasswordLink = document.getElementById('showForgotPassword');
+const backToLoginLink = document.getElementById('backToLogin');
+const forgotPasswordFormContainer = document.getElementById('forgot-password-form-container');
+
 function showMessage(element, msg, isError = false) {
     element.textContent = msg;
     element.className = 'message ' + (isError ? 'error' : 'success');
+}
+
+
+// Hàm để ẩn tất cả các form và chỉ hiển thị form mong muốn
+function showAuthForm(formToShow) {
+    loginFormContainer.style.display = 'none';
+    registerFormContainer.style.display = 'none';
+    forgotPasswordFormContainer.style.display = 'none';
+
+    // Xóa tin nhắn cũ khi chuyển đổi form
+    loginMessage.textContent = '';
+    registerMessage.textContent = '';
+    forgotPasswordMessage.textContent = '';
+
+    if (formToShow === 'login') {
+        loginFormContainer.style.display = 'block';
+    } else if (formToShow === 'register') {
+        registerFormContainer.style.display = 'block';
+    } else if (formToShow === 'forgotPassword') {
+        forgotPasswordFormContainer.style.display = 'block';
+    }
 }
 
 // Xử lý sự kiện Submit của form Đăng ký
@@ -65,7 +93,7 @@ loginForm.addEventListener('submit', async (e) => {
             localStorage.setItem('jwtToken', data.token); // Lưu token
             showMessage(loginMessage, 'Đăng nhập thành công!');
             // CHUYỂN HƯỚNG SANG TRANG CHỦ KHI ĐĂNG NHẬP THÀNH CÔNG
-            window.location.href = '/public/index.html'; 
+            window.location.href = '/index.html'; 
         } else {
             showMessage(loginMessage, data.msg, true);
         }
@@ -74,6 +102,33 @@ loginForm.addEventListener('submit', async (e) => {
         showMessage(loginMessage, 'Đã xảy ra lỗi. Vui lòng thử lại.', true);
     }
 });
+
+// Xử lý sự kiện Submit của form Quên mật khẩu
+forgotPasswordForm.addEventListener('submit', async (e) => {
+    e.preventDefault();
+    const email = document.getElementById('forgotPasswordEmail').value;
+
+    try {
+        const response = await fetch(`${API_BASE_URL}/forgot-password`, {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ email })
+        });
+
+        const data = await response.json();
+
+        if (response.ok) {
+            showMessage(forgotPasswordMessage, data.msg);
+            forgotPasswordForm.reset();
+        } else {
+            showMessage(forgotPasswordMessage, data.msg, true);
+        }
+    } catch (error) {
+        console.error('Lỗi khi gửi yêu cầu quên mật khẩu:', error);
+        showMessage(forgotPasswordMessage, 'Đã xảy ra lỗi. Vui lòng thử lại.', true);
+    }
+});
+
 
 // Chuyển đổi giữa form Đăng nhập và Đăng ký
 showRegisterLink.addEventListener('click', (e) => {
@@ -89,6 +144,19 @@ showLoginLink.addEventListener('click', (e) => {
     registerFormContainer.style.display = 'none';
     registerMessage.textContent = '';
 });
+
+// Chuyển sang form Quên mật khẩu
+showForgotPasswordLink.addEventListener('click', (e) => {
+    e.preventDefault();
+    showAuthForm('forgotPassword');
+});
+
+// Quay lại form Đăng nhập từ Quên mật khẩu
+backToLoginLink.addEventListener('click', (e) => {
+    e.preventDefault();
+    showAuthForm('login');
+});
+
 
 // Kiểm tra xem đã đăng nhập chưa, nếu có thì chuyển hướng ngay để không ở lại trang auth
 document.addEventListener('DOMContentLoaded', () => {

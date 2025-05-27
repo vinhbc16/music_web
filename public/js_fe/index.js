@@ -12,7 +12,6 @@ const userDashboard = document.getElementById('user-dashboard');
 const songsSection = document.getElementById('songs-section');
 const songsContainer = document.getElementById('songs-container');
 
-
 // Hàm kiểm tra trạng thái đăng nhập và cập nhật UI
 async function checkLoginStatus() {
     const token = localStorage.getItem('jwtToken');

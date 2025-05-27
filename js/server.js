@@ -4,7 +4,8 @@ const bcrypt = require('bcryptjs');
 const jwt = require('jsonwebtoken');
 const cors = require('cors'); // Để xử lý CORS giữa Frontend và Backend
 const path = require('path'); // Import module path để xử lý đường dẫn
-
+const crypto = require('crypto');     
+const nodemailer = require('nodemailer'); 
 // Load biến môi trường từ file .env ở thư mục gốc của dự án
 // __dirname là đường dẫn đến thư mục hiện tại (js/)
 // '..' là đi lên một cấp thư mục (đến thư mục gốc WEBNGHENHAC/)
@@ -103,6 +104,126 @@ app.post('/api/login', async (req, res) => {
     }
 });
 
+// <--- ĐẢM BẢO KHỐI CẤU HÌNH NODEMAILER NÀY NẰM Ở ĐÂY HOẶC TRƯỚC CÁC API SỬ DỤNG NÓ ---
+const transporter = nodemailer.createTransport({
+    service: 'Gmail',
+    auth: {
+        user: process.env.EMAIL_USER,
+        pass: process.env.EMAIL_APP_PASSWORD
+    }
+});
+// ----------------------------------------------------------------------------------
+
+
+
+// --- Thêm: API Quên mật khẩu ---
+app.post('/api/forgot-password', async (req, res) => {
+    const { email } = req.body;
+
+    if (!email) {
+        return res.status(400).json({ msg: 'Vui lòng cung cấp địa chỉ email.' });
+    }
+
+    try {
+        // 1. Tìm người dùng theo email
+        const [users] = await pool.execute(
+            'SELECT id, username, email FROM users WHERE email = ?',
+            [email]
+        );
+        const user = users[0];
+
+        if (!user) {
+            // Để tránh tiết lộ thông tin người dùng, luôn trả về thông báo thành công
+            // dù email không tồn tại.
+            console.log(`Yêu cầu quên mật khẩu cho email không tồn tại: ${email}`);
+            return res.status(200).json({ msg: 'Nếu email của bạn tồn tại trong hệ thống, chúng tôi đã gửi một liên kết đặt lại mật khẩu.' });
+        }
+
+        // 2. Tạo token đặt lại mật khẩu và thời hạn
+        const resetToken = crypto.randomBytes(32).toString('hex'); // Token ngẫu nhiên 64 ký tự
+        const resetTokenExpires = Date.now() + 3600000; // Hết hạn sau 1 giờ (milliseconds)
+
+        // 3. Lưu token và thời hạn vào database
+        await pool.execute(
+            'UPDATE users SET reset_password_token = ?, reset_password_expires = ? WHERE id = ?',
+            [resetToken, resetTokenExpires, user.id]
+        );
+
+        // 4. Gửi email chứa liên kết đặt lại mật khẩu
+        // Đảm bảo URL này là URL Frontend của bạn (ví dụ: http://localhost:3000/reset-password)
+        const resetLink = `${process.env.FRONTEND_URL}/reset-password?token=${resetToken}`;
+
+        const mailOptions = {
+            from: `WEBNGHENHAC <${process.env.EMAIL_USER}>`, // Tên ứng dụng của bạn và email gửi đi
+            to: user.email,
+            subject: 'Yêu cầu đặt lại mật khẩu WEBNGHENHAC của bạn',
+            html: `
+                <p>Chào ${user.username || 'bạn'},</p>
+                <p>Bạn đã yêu cầu đặt lại mật khẩu cho tài khoản của mình trên web VMUSIC của chúng tôi.</p>
+                <p>Vui lòng nhấp vào liên kết sau để đặt lại mật khẩu của bạn:</p>
+                <p><a href="${resetLink}">${resetLink}</a></p>
+                <p>Liên kết này sẽ hết hạn sau 1 giờ.</p>
+                <p>Nếu bạn không yêu cầu điều này, vui lòng bỏ qua email này.</p>
+            `
+        };
+
+        await transporter.sendMail(mailOptions);
+        console.log(`Đã gửi email đặt lại mật khẩu đến: ${user.email}`);
+        res.status(200).json({ msg: 'Nếu email của bạn tồn tại trong hệ thống, chúng tôi đã gửi một liên kết đặt lại mật khẩu.' });
+
+    } catch (err) {
+        console.error('Lỗi khi xử lý yêu cầu quên mật khẩu:', err.message);
+        res.status(500).json({ msg: 'Đã xảy ra lỗi khi gửi yêu cầu. Vui lòng thử lại.' });
+    }
+});
+
+// Thêm: Route để phục vụ trang đặt lại mật khẩu (Frontend)
+// Đây là GET request khi người dùng click vào link trong email
+app.get('/reset-password', (req, res) => {
+    // Trả về file HTML của trang đặt lại mật khẩu.
+    // Frontend JS sẽ đọc token từ URL và hiển thị form.
+    res.sendFile(path.join(__dirname, '..', 'public', 'reset_password.html'));
+});
+
+// Thêm: API để xử lý đặt lại mật khẩu thực tế
+app.post('/api/reset-password', async (req, res) => {
+    const { token, newPassword } = req.body;
+
+    if (!token || !newPassword) {
+        return res.status(400).json({ msg: 'Thông tin không đầy đủ.' });
+    }
+
+    try {
+        // 1. Tìm người dùng bằng token và kiểm tra thời hạn
+        const [users] = await pool.execute(
+            'SELECT id FROM users WHERE reset_password_token = ? AND reset_password_expires > ?',
+            [token, Date.now()]
+        );
+        const user = users[0];
+
+        if (!user) {
+            return res.status(400).json({ msg: 'Liên kết đặt lại mật khẩu không hợp lệ hoặc đã hết hạn.' });
+        }
+
+        // 2. Hash mật khẩu mới
+        const salt = await bcrypt.genSalt(10);
+        const hashedPassword = await bcrypt.hash(newPassword, salt);
+
+        // 3. Cập nhật mật khẩu mới và xóa token đặt lại
+        await pool.execute(
+            'UPDATE users SET password = ?, reset_password_token = NULL, reset_password_expires = NULL WHERE id = ?',
+            [hashedPassword, user.id]
+        );
+
+        res.status(200).json({ msg: 'Mật khẩu của bạn đã được đặt lại thành công!' });
+
+    } catch (err) {
+        console.error('Lỗi khi đặt lại mật khẩu:', err.message);
+        res.status(500).json({ msg: 'Đã xảy ra lỗi khi đặt lại mật khẩu. Vui lòng thử lại.' });
+    }
+});
+// --- Kết thúc API Quên mật khẩu ---
+
 // API để lấy danh sách bài hát
 app.get('/api/songs', async (req, res) => {
     try {
@@ -136,6 +257,7 @@ app.get('/api/songs/:id', async (req, res) => {
         res.status(500).send('Lỗi máy chủ khi lấy chi tiết bài hát.');
     }
 });
+
 
 // Start server
 app.listen(PORT, () => console.log(`Server đang chạy trên cổng ${PORT}`));
