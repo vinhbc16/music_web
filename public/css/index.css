@@ -18,36 +18,115 @@ header {
     justify-content: space-between;
     align-items: center;
     box-shadow: 0 2px 5px rgba(0, 0, 0, 0.2);
+    flex-wrap: wrap; /* Cho phép các item xuống dòng nếu không đủ không gian */
 }
 
 header h1 {
     margin: 0;
     font-size: 1.8rem;
+    margin-right: 20px; /* Thêm khoảng cách với nav */
 }
 
-header nav a, header nav button {
+header nav {
+    display: flex;
+    align-items: center;
+    flex-wrap: wrap; /* Cho phép các item trong nav xuống dòng */
+}
+
+/* Style chung cho các link và button trong nav */
+header nav a,
+header nav button {
     color: white;
     text-decoration: none;
     padding: 8px 15px;
     margin-left: 10px;
     border: 1px solid transparent;
     border-radius: 4px;
-    transition: background-color 0.3s ease;
+    transition: background-color 0.3s ease, border-color 0.3s ease;
     cursor: pointer;
     font-size: 1rem;
+    display: inline-block; /* Đảm bảo padding và margin hoạt động đúng */
+    margin-bottom: 5px; /* Thêm margin bottom cho trường hợp wrap */
+}
+
+/* Style riêng cho các link điều hướng thông thường */
+header nav a.nav-link {
+    background-color: transparent; /* Không có màu nền mặc định */
+    border: 1px solid #6c757d; /* Viền nhẹ để phân biệt */
+}
+
+header nav a.nav-link:hover {
+    background-color: #0056b3; /* Màu nền khi hover giống nút */
+    border-color: #0056b3;
+}
+
+/* Style cho nút Đăng nhập/Đăng xuất (đã có) và các nút tương tự */
+header nav a.nav-button,
+header nav button.nav-button, /* Áp dụng cho nút Đăng xuất */
+header nav #searchButton /* Áp dụng cho nút Tìm kiếm */ {
     background-color: #007bff; /* Nút/link màu xanh */
 }
 
-header nav a:hover, header nav button:hover {
+header nav a.nav-button:hover,
+header nav button.nav-button:hover,
+header nav #searchButton:hover {
     background-color: #0056b3;
 }
+
+/* Thanh tìm kiếm */
+.search-container {
+    display: flex;
+    align-items: center;
+    margin-left: 15px;
+    margin-right: 15px; /* Khoảng cách với các nút đăng nhập/xuất */
+    margin-bottom: 5px; /* Thêm margin bottom cho trường hợp wrap */
+}
+
+#searchInput {
+    padding: 8px 10px;
+    font-size: 0.9rem;
+    border: 1px solid #ccc;
+    border-radius: 4px 0 0 4px; /* Bo góc trái */
+    outline: none;
+    min-width: 150px; /* Độ rộng tối thiểu */
+}
+
+#searchButton {
+    padding: 8px 12px;
+    font-size: 0.9rem;
+    border: 1px solid #007bff;
+    background-color: #007bff;
+    color: white;
+    border-radius: 0 4px 4px 0; /* Bo góc phải */
+    cursor: pointer;
+    margin-left: -1px; /* Ghép sát vào input */
+    transition: background-color 0.3s ease;
+}
+
+#searchButton:hover {
+    background-color: #0056b3;
+    border-color: #0056b3;
+}
+
+
+/* Đảm bảo div loggedInNav và loggedOutNav căn chỉnh đúng */
+#loggedInNav, #loggedOutNav {
+    display: flex; /* Sử dụng flex để các item bên trong căn chỉnh */
+    align-items: center;
+    margin-left: auto; /* Đẩy cụm đăng nhập/đăng xuất sang phải nếu có không gian */
+}
+
+#loggedInNav span {
+    margin-right: 10px;
+}
+
 
 footer {
     background-color: #282c34;
     color: white;
     text-align: center;
     padding: 1rem 0;
-    margin-top: 20px;
+    margin-top: auto; /* Đẩy footer xuống dưới cùng */
 }
 
 /* Song List Styling */

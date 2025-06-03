@@ -4,16 +4,28 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Web Nghe Nhạc - Trang Chủ</title>
-    <link rel="stylesheet" href="css/index.css"> </head>
+    <link rel="stylesheet" href="css/index.css">
+</head>
 <body>
     <header>
         <h1>Ứng Dụng Nghe Nhạc</h1>
         <nav>
-            <div id="loggedInNav" style="display: none;">
-                Chào mừng, <span id="headerUsernameSpan"></span>! 
-                <button id="logoutBtn">Đăng xuất</button>
+            <a href="#songs-section" class="nav-link">Bài hát</a>
+            <a href="/explore.html" class="nav-link">Khám phá</a> <a href="/playlists.html" class="nav-link">Playlist</a>
+            <a href="/genres.html" class="nav-link">Thể loại</a>
+            <a href="/charts.html" class="nav-link">BXH</a>
+
+            <div class="search-container">
+                <input type="text" id="searchInput" placeholder="Tìm kiếm bài hát, nghệ sĩ...">
+                <button id="searchButton">Tìm</button>
             </div>
-            <div id="loggedOutNav"> <a href="login_register.html" class="nav-button">Đăng nhập</a>
+
+            <div id="loggedInNav" style="display: none;">
+                Chào mừng, <span id="headerUsernameSpan"></span>!
+                <button id="logoutBtn" class="nav-button">Đăng xuất</button>
+            </div>
+            <div id="loggedOutNav">
+                <a href="login_register.html" class="nav-button">Đăng nhập</a>
             </div>
         </nav>
     </header>
@@ -24,7 +36,7 @@
             <p>Bạn đã đăng nhập thành công!</p>
         </section>
 
-        <section id="songs-section"> 
+        <section id="songs-section">
             <h2>Danh sách bài hát</h2>
             <div id="songs-container" class="song-grid">
                 </div>
@@ -35,5 +47,6 @@
         <p>&copy; 2024 Ứng Dụng Nghe Nhạc</p>
     </footer>
 
-    <script src="js_fe/index.js"></script> </body>
+    <script src="js_fe/index.js"></script>
+</body>
 </html>
