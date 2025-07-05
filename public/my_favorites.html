@@ -1,0 +1,51 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Bài hát của tôi</title>
+    <link rel="stylesheet" href="/css/index.css"> <style>
+        /* CSS bổ sung nếu cần cho trang này */
+        .page-title {
+            text-align: center;
+            margin: 20px 0;
+            color: #007bff;
+        }
+        .no-favorites {
+            text-align: center;
+            font-size: 1.2rem;
+            color: #666;
+            margin-top: 50px;
+        }
+    </style>
+</head>
+<body>
+    <header>
+        <nav>
+            <a href="index.html" class="nav-link">Trang Trủ</a>
+            <a href="#songs-section" class="nav-link">Bài hát</a>
+            <a href="khampha.html" class="nav-link">Khám phá</a>
+            <a href="playlists.html" class="nav-link">Playlist</a>
+            <a href="bxh.html" class="nav-link">BXH</a>
+
+            <div class="search-container">
+                <input type="text" id="searchInput" placeholder="Tìm kiếm bài hát, nghệ sĩ...">
+                <button id="searchButton">Tìm</button>
+            </div>
+        </nav>
+    </header>
+
+    <main class="container">
+        <h2 class="page-title">Bài Hát Yêu Thích</h2>
+        <div id="favorite-songs-container" class="song-grid">
+            </div>
+    </main>
+
+    <footer>
+        <p>&copy; 2024 Ứng Dụng Nghe Nhạc</p>
+    </footer>
+
+    <script src="/js_fe/my_favorites.js"></script>
+    <script src="/js_fe/index.js"></script>
+</body>
+</html>

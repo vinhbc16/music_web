@@ -2,42 +2,63 @@
 const express = require('express');
 const bcrypt = require('bcryptjs');
 const jwt = require('jsonwebtoken');
-const cors = require('cors'); // Để xử lý CORS giữa Frontend và Backend
-const path = require('path'); // Import module path để xử lý đường dẫn
-const crypto = require('crypto');     
-const nodemailer = require('nodemailer'); 
-// Load biến môi trường từ file .env ở thư mục gốc của dự án
-// __dirname là đường dẫn đến thư mục hiện tại (js/)
-// '..' là đi lên một cấp thư mục (đến thư mục gốc WEBNGHENHAC/)
-// '.env' là tên file
+const cors = require('cors');
+const path = require('path');
+const crypto = require('crypto');
+const nodemailer = require('nodemailer');
 require('dotenv').config({ path: path.resolve(__dirname, '..', '.env') });
 
-// Import pool kết nối database
-// Vì db.js nằm cùng cấp với server.js (cả hai đều trong thư mục js/),
-// nên đường dẫn tương đối là './db'
 const pool = require('./db');
 
 const app = express();
-const PORT = process.env.PORT || 5000; // Backend sẽ chạy trên cổng 5000
+const PORT = process.env.PORT || 5000;
 
-// Cấu hình Express để phục vụ các file tĩnh
 app.use(express.static(path.join(__dirname, '..', 'public')));
 app.use('/music', express.static(path.join(__dirname, '..', 'music')));
-//app.use('/public/assets', express.static(path.join(__dirname, '..', 'assets')));
 
-// Middleware
-app.use(express.json()); // Cho phép Express đọc JSON từ request body
-app.use(cors()); // Cho phép Frontend (chạy trên port khác) gửi yêu cầu đến Backend
+app.use(express.json());
+app.use(cors());
+
+// --- START: JWT AUTHENTICATION MIDDLEWARE ---
+const authMiddleware = (req, res, next) => {
+    // Lấy token từ header 'Authorization'
+    const authHeader = req.header('Authorization');
+
+    // Kiểm tra xem header có tồn tại và có định dạng 'Bearer token' không
+    if (!authHeader || !authHeader.startsWith('Bearer ')) {
+        return res.status(401).json({ msg: 'Không có token, ủy quyền bị từ chối.' });
+    }
+
+    try {
+        const token = authHeader.split(' ')[1]; // Lấy phần token sau 'Bearer '
+        // Xác thực token
+        const decoded = jwt.verify(token, process.env.JWT_SECRET);
+
+        // Gắn thông tin người dùng đã giải mã vào đối tượng request
+        // để các route handler sau có thể sử dụng
+        req.user = decoded.user; // payload khi tạo token là { user: { id: user.id, username: user.username } }
+        next(); // Chuyển sang middleware hoặc route handler tiếp theo
+    } catch (err) {
+        console.error('Lỗi xác thực token:', err.message);
+        if (err.name === 'TokenExpiredError') {
+            return res.status(401).json({ msg: 'Token đã hết hạn.' });
+        }
+        if (err.name === 'JsonWebTokenError') {
+            return res.status(401).json({ msg: 'Token không hợp lệ.' });
+        }
+        res.status(401).json({ msg: 'Token không hợp lệ hoặc có lỗi xảy ra.' });
+    }
+};
+// --- END: JWT AUTHENTICATION MIDDLEWARE ---
+
 
 // API Đăng ký
 app.post('/api/register', async (req, res) => {
     const { username, email, password } = req.body;
-    // Kiểm tra dữ liệu đầu vào
     if (!username || !email || !password) {
         return res.status(400).json({ msg: 'Vui lòng nhập đầy đủ các trường.' });
     }
     try {
-        // Kiểm tra xem username hoặc email đã tồn tại chưa
         const [users] = await pool.execute(
             'SELECT id FROM users WHERE username = ? OR email = ?',
             [username, email]
@@ -45,30 +66,26 @@ app.post('/api/register', async (req, res) => {
         if (users.length > 0) {
             return res.status(400).json({ msg: 'Tên đăng nhập hoặc email đã tồn tại.' });
         }
-        // Băm mật khẩu (hash password)
         const salt = await bcrypt.genSalt(10);
         const hashedPassword = await bcrypt.hash(password, salt);
-        // Lưu người dùng mới vào database
-        const [result] = await pool.execute(
+        await pool.execute(
             'INSERT INTO users (username, email, password) VALUES (?, ?, ?)',
             [username, email, hashedPassword]
         );
         res.status(201).json({ msg: 'Đăng ký thành công!' });
     } catch (err) {
-        console.error(err.message);
-        res.status(500).send('Lỗi máy chủ.');
+        console.error('Lỗi đăng ký:', err.message);
+        res.status(500).send('Lỗi máy chủ khi đăng ký.');
     }
 });
 
-// Route API Đăng nhập
+// API Đăng nhập
 app.post('/api/login', async (req, res) => {
     const { username, password } = req.body;
-    // Kiểm tra dữ liệu đầu vào
     if (!username || !password) {
         return res.status(400).json({ msg: 'Vui lòng nhập tên đăng nhập và mật khẩu.' });
     }
     try {
-        // Tìm người dùng theo username
         const [users] = await pool.execute(
             'SELECT id, username, password FROM users WHERE username = ?',
             [username]
@@ -77,12 +94,10 @@ app.post('/api/login', async (req, res) => {
         if (!user) {
             return res.status(400).json({ msg: 'Tên đăng nhập hoặc mật khẩu không đúng.' });
         }
-        // So sánh mật khẩu đã băm
         const isMatch = await bcrypt.compare(password, user.password);
         if (!isMatch) {
             return res.status(400).json({ msg: 'Tên đăng nhập hoặc mật khẩu không đúng.' });
         }
-        // Tạo JWT
         const payload = {
             user: {
                 id: user.id,
@@ -91,20 +106,19 @@ app.post('/api/login', async (req, res) => {
         };
         jwt.sign(
             payload,
-            process.env.JWT_SECRET, // Secret key của JWT từ .env
-            { expiresIn: '1h' }, // Token hết hạn sau 1 giờ
+            process.env.JWT_SECRET,
+            { expiresIn: '1h' }, // Token có thể đặt thời gian hết hạn dài hơn, ví dụ: '24h' hoặc '7d'
             (err, token) => {
                 if (err) throw err;
-                res.json({ token }); // Trả về token cho Frontend
+                res.json({ token });
             }
         );
     } catch (err) {
-        console.error(err.message);
-        res.status(500).send('Lỗi máy chủ.');
+        console.error('Lỗi đăng nhập:', err.message);
+        res.status(500).send('Lỗi máy chủ khi đăng nhập.');
     }
 });
 
-// <--- ĐẢM BẢO KHỐI CẤU HÌNH NODEMAILER NÀY NẰM Ở ĐÂY HOẶC TRƯỚC CÁC API SỬ DỤNG NÓ ---
 const transporter = nodemailer.createTransport({
     service: 'Gmail',
     auth: {
@@ -112,160 +126,225 @@ const transporter = nodemailer.createTransport({
         pass: process.env.EMAIL_APP_PASSWORD
     }
 });
-// ----------------------------------------------------------------------------------
 
-
-
-// --- Thêm: API Quên mật khẩu ---
+// API Quên mật khẩu
 app.post('/api/forgot-password', async (req, res) => {
+    // ... (giữ nguyên code của bạn)
     const { email } = req.body;
 
     if (!email) {
         return res.status(400).json({ msg: 'Vui lòng cung cấp địa chỉ email.' });
     }
-
     try {
-        // 1. Tìm người dùng theo email
         const [users] = await pool.execute(
             'SELECT id, username, email FROM users WHERE email = ?',
             [email]
         );
         const user = users[0];
-
         if (!user) {
-            // Để tránh tiết lộ thông tin người dùng, luôn trả về thông báo thành công
-            // dù email không tồn tại.
             console.log(`Yêu cầu quên mật khẩu cho email không tồn tại: ${email}`);
             return res.status(200).json({ msg: 'Nếu email của bạn tồn tại trong hệ thống, chúng tôi đã gửi một liên kết đặt lại mật khẩu.' });
         }
-
-        // 2. Tạo token đặt lại mật khẩu và thời hạn
-        const resetToken = crypto.randomBytes(32).toString('hex'); // Token ngẫu nhiên 64 ký tự
-        const resetTokenExpires = Date.now() + 3600000; // Hết hạn sau 1 giờ (milliseconds)
-
-        // 3. Lưu token và thời hạn vào database
+        const resetToken = crypto.randomBytes(32).toString('hex');
+        const resetTokenExpires = Date.now() + 3600000; // 1 giờ
         await pool.execute(
             'UPDATE users SET reset_password_token = ?, reset_password_expires = ? WHERE id = ?',
             [resetToken, resetTokenExpires, user.id]
         );
-
-        // 4. Gửi email chứa liên kết đặt lại mật khẩu
-        // Đảm bảo URL này là URL Frontend của bạn (ví dụ: http://localhost:3000/reset-password)
         const resetLink = `${process.env.FRONTEND_URL}/reset-password?token=${resetToken}`;
-
         const mailOptions = {
-            from: `WEBNGHENHAC <${process.env.EMAIL_USER}>`, // Tên ứng dụng của bạn và email gửi đi
+            from: `WEBNGHENHAC <${process.env.EMAIL_USER}>`,
             to: user.email,
             subject: 'Yêu cầu đặt lại mật khẩu WEBNGHENHAC của bạn',
             html: `
                 <p>Chào ${user.username || 'bạn'},</p>
-                <p>Bạn đã yêu cầu đặt lại mật khẩu cho tài khoản của mình trên web VMUSIC của chúng tôi.</p>
+                <p>Bạn đã yêu cầu đặt lại mật khẩu cho tài khoản của mình trên VMUSIC.</p>
                 <p>Vui lòng nhấp vào liên kết sau để đặt lại mật khẩu của bạn:</p>
                 <p><a href="${resetLink}">${resetLink}</a></p>
                 <p>Liên kết này sẽ hết hạn sau 1 giờ.</p>
                 <p>Nếu bạn không yêu cầu điều này, vui lòng bỏ qua email này.</p>
             `
         };
-
         await transporter.sendMail(mailOptions);
         console.log(`Đã gửi email đặt lại mật khẩu đến: ${user.email}`);
         res.status(200).json({ msg: 'Nếu email của bạn tồn tại trong hệ thống, chúng tôi đã gửi một liên kết đặt lại mật khẩu.' });
-
     } catch (err) {
         console.error('Lỗi khi xử lý yêu cầu quên mật khẩu:', err.message);
         res.status(500).json({ msg: 'Đã xảy ra lỗi khi gửi yêu cầu. Vui lòng thử lại.' });
     }
 });
 
-// Thêm: Route để phục vụ trang đặt lại mật khẩu (Frontend)
-// Đây là GET request khi người dùng click vào link trong email
 app.get('/reset-password', (req, res) => {
-    // Trả về file HTML của trang đặt lại mật khẩu.
-    // Frontend JS sẽ đọc token từ URL và hiển thị form.
     res.sendFile(path.join(__dirname, '..', 'public', 'reset_password.html'));
 });
 
-// Thêm: API để xử lý đặt lại mật khẩu thực tế
 app.post('/api/reset-password', async (req, res) => {
+    // ... (giữ nguyên code của bạn)
     const { token, newPassword } = req.body;
-
     if (!token || !newPassword) {
         return res.status(400).json({ msg: 'Thông tin không đầy đủ.' });
     }
-
     try {
-        // 1. Tìm người dùng bằng token và kiểm tra thời hạn
         const [users] = await pool.execute(
             'SELECT id FROM users WHERE reset_password_token = ? AND reset_password_expires > ?',
             [token, Date.now()]
         );
         const user = users[0];
-
         if (!user) {
             return res.status(400).json({ msg: 'Liên kết đặt lại mật khẩu không hợp lệ hoặc đã hết hạn.' });
         }
-
-        // 2. Hash mật khẩu mới
         const salt = await bcrypt.genSalt(10);
         const hashedPassword = await bcrypt.hash(newPassword, salt);
-
-        // 3. Cập nhật mật khẩu mới và xóa token đặt lại
         await pool.execute(
             'UPDATE users SET password = ?, reset_password_token = NULL, reset_password_expires = NULL WHERE id = ?',
             [hashedPassword, user.id]
         );
-
         res.status(200).json({ msg: 'Mật khẩu của bạn đã được đặt lại thành công!' });
-
     } catch (err) {
         console.error('Lỗi khi đặt lại mật khẩu:', err.message);
         res.status(500).json({ msg: 'Đã xảy ra lỗi khi đặt lại mật khẩu. Vui lòng thử lại.' });
     }
 });
-// --- Kết thúc API Quên mật khẩu ---
 
 // API để lấy danh sách bài hát
 app.get('/api/songs', async (req, res) => {
     try {
-        // Sử dụng pool.execute (vì đã cấu hình bằng mysql2/promise)
         const [songs] = await pool.execute('SELECT * FROM songs');
-        res.json(songs); // Trả về danh sách bài hát dưới dạng JSON
+        res.json(songs);
     } catch (err) {
         console.error('Lỗi truy vấn danh sách bài hát:', err.message);
         res.status(500).send('Lỗi truy vấn CSDL khi lấy danh sách bài hát.');
     }
 });
+
 // API để lấy chi tiết một bài hát theo ID
 app.get('/api/songs/:id', async (req, res) => {
-    // Lấy ID bài hát từ tham số URL
-    // Ví dụ: nếu URL là /api/songs/123, thì req.params.id sẽ là '123'
-    const songId = req.params.id; 
+    const songId = req.params.id;
     try {
-        // Truy vấn database để lấy bài hát có ID tương ứng
         const [songs] = await pool.execute('SELECT * FROM songs WHERE id = ?', [songId]);
-        // Kiểm tra xem có tìm thấy bài hát nào không
         const song = songs[0];
         if (!song) {
-            // Nếu không tìm thấy, trả về lỗi 404 Not Found
             return res.status(404).json({ msg: 'Bài hát không tìm thấy.' });
         }
-        // Nếu tìm thấy, trả về chi tiết bài hát dưới dạng JSON
         res.json(song);
     } catch (err) {
-        // Xử lý lỗi nếu có vấn đề trong quá trình truy vấn database
         console.error(`Lỗi khi lấy chi tiết bài hát ID ${songId}:`, err.message);
         res.status(500).send('Lỗi máy chủ khi lấy chi tiết bài hát.');
     }
 });
+
+
+// --- START: COMMENT APIs ---
+
+// API để lấy danh sách bình luận cho một bài hát
+app.get('/api/songs/:songId/comments', async (req, res) => {
+    const { songId } = req.params;
+    try {
+        // Kiểm tra songId có hợp lệ không (phải là số)
+        if (isNaN(parseInt(songId))) {
+            return res.status(400).json({ msg: 'ID bài hát không hợp lệ.' });
+        }
+
+        // Truy vấn lấy bình luận và thông tin người dùng (username)
+        // Sắp xếp theo thời gian tạo, bình luận mới nhất lên đầu (DESC) hoặc cũ nhất (ASC)
+        const query = `
+            SELECT 
+                c.id, 
+                c.content, 
+                c.created_at, 
+                c.updated_at,
+                c.parent_comment_id,
+                u.id as user_id, 
+                u.username as username 
+            FROM comments c
+            JOIN users u ON c.user_id = u.id
+            WHERE c.song_id = ?
+            ORDER BY c.created_at ASC; 
+        `;
+        // Sắp xếp theo created_at ASC để hiển thị bình luận theo thứ tự thời gian, có thể dùng DESC cho bình luận mới nhất lên đầu
+        const [comments] = await pool.execute(query, [songId]);
+        
+        res.json(comments);
+    } catch (err) {
+        console.error(`Lỗi khi lấy bình luận cho bài hát ID ${songId}:`, err.message);
+        res.status(500).send('Lỗi máy chủ khi lấy danh sách bình luận.');
+    }
+});
+
+// API để đăng một bình luận mới cho bài hát
+// Yêu cầu người dùng phải đăng nhập (sử dụng authMiddleware)
+app.post('/api/songs/:songId/comments', authMiddleware, async (req, res) => {
+    const { songId } = req.params;
+    const { content, parent_comment_id } = req.body; // Lấy content và parent_comment_id (nếu có) từ request body
+    const userId = req.user.id; // Lấy user_id từ thông tin người dùng đã xác thực (gắn bởi authMiddleware)
+
+    // Kiểm tra dữ liệu đầu vào
+    if (!content || content.trim() === '') {
+        return res.status(400).json({ msg: 'Nội dung bình luận không được để trống.' });
+    }
+    if (isNaN(parseInt(songId))) {
+        return res.status(400).json({ msg: 'ID bài hát không hợp lệ.' });
+    }
+    // (Tùy chọn) Kiểm tra parent_comment_id nếu được cung cấp
+    if (parent_comment_id && isNaN(parseInt(parent_comment_id))) {
+        return res.status(400).json({ msg: 'ID bình luận cha không hợp lệ.' });
+    }
+
+
+    try {
+        // Kiểm tra xem bài hát có tồn tại không
+        const [songs] = await pool.execute('SELECT id FROM songs WHERE id = ?', [songId]);
+        if (songs.length === 0) {
+            return res.status(404).json({ msg: 'Bài hát không tồn tại để bình luận.' });
+        }
+        
+        // (Tùy chọn) Kiểm tra xem parent_comment_id (nếu có) có tồn tại và thuộc cùng song_id không
+        if (parent_comment_id) {
+            const [parentComments] = await pool.execute(
+                'SELECT id FROM comments WHERE id = ? AND song_id = ?', 
+                [parent_comment_id, songId]
+            );
+            if (parentComments.length === 0) {
+                return res.status(400).json({ msg: 'Bình luận cha không tồn tại hoặc không thuộc bài hát này.' });
+            }
+        }
+
+
+        // Thêm bình luận mới vào database
+        const [result] = await pool.execute(
+            'INSERT INTO comments (song_id, user_id, content, parent_comment_id) VALUES (?, ?, ?, ?)',
+            [songId, userId, content, parent_comment_id || null] // Nếu parent_comment_id không có thì truyền NULL
+        );
+
+        // Lấy lại bình luận vừa tạo để trả về (bao gồm username)
+        const newCommentId = result.insertId;
+        const [newComments] = await pool.execute(
+            `SELECT c.id, c.content, c.created_at, c.parent_comment_id, u.id as user_id, u.username 
+             FROM comments c JOIN users u ON c.user_id = u.id 
+             WHERE c.id = ?`,
+            [newCommentId]
+        );
+        
+        res.status(201).json(newComments[0]); // Trả về bình luận vừa tạo
+
+    } catch (err) {
+        console.error(`Lỗi khi đăng bình luận cho bài hát ID ${songId}:`, err.message);
+        res.status(500).send('Lỗi máy chủ khi đăng bình luận.');
+    }
+});
+
+// --- END: COMMENT APIs ---
+
+
+// Route để phục vụ file HTML chi tiết bài hát
 app.get('/songs/:id', (req, res, next) => {
     console.log(`[SERVER LOG] Yêu cầu đến trang HTML: /songs/${req.params.id}`);
     const filePath = path.join(__dirname, '..', 'public', 'song_detail.html');
     console.log(`[SERVER LOG] Đang cố gắng gửi file: ${filePath}`);
-
     res.sendFile(filePath, (err) => {
         if (err) {
             console.error('[SERVER LOG] Lỗi khi gửi file song_detail.html:', err.message);
-            next(err); // Quan trọng: chuyển lỗi cho Express xử lý
+            next(err);
         } else {
             console.log('[SERVER LOG] Đã gửi file song_detail.html thành công.');
         }

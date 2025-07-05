@@ -1,233 +1,249 @@
 // public/js_fe/index.js
 const API_BASE_URL = 'http://localhost:5000/api';
 
-// Lấy các phần tử DOM cho header nav
+// --- CÁC HẰNG SỐ CẤU HÌNH ---
+const MAX_RECENTLY_PLAYED = 5;
+const MAX_MOST_PLAYED = 5;
+
+// --- LẤY CÁC PHẦN TỬ DOM ---
 const loggedInNav = document.getElementById('loggedInNav');
 const loggedOutNav = document.getElementById('loggedOutNav');
 const headerUsernameSpan = document.getElementById('headerUsernameSpan');
 const logoutBtn = document.getElementById('logoutBtn');
-
-// Lấy các phần tử DOM cho nội dung chính
-const userDashboard = document.getElementById('user-dashboard');
-const songsSection = document.getElementById('songs-section');
 const songsContainer = document.getElementById('songs-container');
-
-// Lấy các phần tử DOM cho thanh tìm kiếm
 const searchInput = document.getElementById('searchInput');
 const searchButton = document.getElementById('searchButton');
+const personalizedSections = document.getElementById('personalized-sections');
+const recentlyPlayedContainer = document.getElementById('recently-played-container');
+const mostPlayedContainer = document.getElementById('most-played-container');
 
-let allFetchedSongs = []; // Biến để lưu trữ tất cả bài hát đã fetch
+// --- BIẾN TOÀN CỤC ---
+let allFetchedSongs = [];
 
-// Hàm kiểm tra trạng thái đăng nhập và cập nhật UI
-async function checkLoginStatus() {
-    const token = localStorage.getItem('jwtToken');
-    if (token) {
-        try {
-            const payloadBase64 = token.split('.')[1];
-            const decodedPayload = JSON.parse(atob(payloadBase64));
-            
-            headerUsernameSpan.textContent = decodedPayload.user.username;
-            loggedInNav.style.display = 'flex'; // Sử dụng flex để căn chỉnh tốt hơn
-            loggedOutNav.style.display = 'none';
-            userDashboard.style.display = 'block';
-            songsSection.style.display = 'block'; 
-            await fetchSongs(); // Fetch và hiển thị danh sách bài hát
-        } catch (e) {
-            console.error("Lỗi giải mã token hoặc token không hợp lệ:", e);
-            localStorage.removeItem('jwtToken');
-            loggedInNav.style.display = 'none';
-            loggedOutNav.style.display = 'flex'; // Sử dụng flex
-            userDashboard.style.display = 'none';
-            songsSection.style.display = 'block';
-            await fetchSongs(); 
-        }
-    } else {
-        loggedInNav.style.display = 'none';
-        loggedOutNav.style.display = 'flex'; // Sử dụng flex
-        userDashboard.style.display = 'none';
-        songsSection.style.display = 'block';
-        await fetchSongs();
-    }
+// --- CÁC HÀM LƯU VÀ LẤY DỮ LIỆU TỪ LOCALSTORAGE ---
+function trackRecentlyPlayed(songId) {
+    if (!songId) return;
+    let recentlyPlayed = JSON.parse(localStorage.getItem('recentlyPlayed')) || [];
+    recentlyPlayed = recentlyPlayed.filter(id => id !== songId);
+    recentlyPlayed.unshift(songId);
+    const sliced = recentlyPlayed.slice(0, MAX_RECENTLY_PLAYED);
+    localStorage.setItem('recentlyPlayed', JSON.stringify(sliced));
 }
 
-// Hàm render danh sách bài hát
-function renderSongs(songsToRender) {
-    songsContainer.innerHTML = ''; // Xóa các bài hát cũ
-
-    if (!songsToRender || songsToRender.length === 0) {
-        // Kiểm tra xem có query tìm kiếm không để hiển thị thông báo phù hợp
-        if (searchInput.value.trim() !== "" && allFetchedSongs.length > 0) {
-            songsContainer.innerHTML = '<p>Không tìm thấy bài hát nào phù hợp với tìm kiếm của bạn.</p>';
-        } else if (allFetchedSongs.length === 0 && searchInput.value.trim() === "") {
-            // Trường hợp này là khi ban đầu không có bài hát nào từ API
-             songsContainer.innerHTML = '<p>Chưa có bài hát nào trong danh sách.</p>';
-        } else if (searchInput.value.trim() === "" && allFetchedSongs.length > 0) {
-            // Nếu ô tìm kiếm trống và có bài hát, nhưng songsToRender lại rỗng (trường hợp này ít xảy ra trừ khi có lỗi logic)
-            //  Hiển thị lại toàn bộ danh sách nếu không có gì để render nhưng có bài hát gốc
-            allFetchedSongs.forEach(createAndAppendSongCard);
-
-        }
-         else {
-            songsContainer.innerHTML = '<p>Chưa có bài hát nào để hiển thị.</p>';
-        }
-        return;
-    }
-
-    songsToRender.forEach(createAndAppendSongCard);
+function trackPlayCount(songId) {
+    if (!songId) return;
+    let playCounts = JSON.parse(localStorage.getItem('playCounts')) || {};
+    playCounts[songId] = (playCounts[songId] || 0) + 1;
+    localStorage.setItem('playCounts', JSON.stringify(playCounts));
 }
 
-// Hàm tạo và gắn card bài hát (tách ra để tái sử dụng)
-function createAndAppendSongCard(song) {
+// --- CÁC HÀM HIỂN THỊ DỮ LIỆU ---
+
+/**
+ * QUAN TRỌNG: Hàm này tạo card bài hát VÀ gắn sự kiện click để điều hướng
+ */
+function createIndexSongCardElement(song) {
     const songCard = document.createElement('div');
     songCard.classList.add('song-card');
+    // Lưu ID bài hát vào data attribute để sử dụng sau này
     songCard.dataset.songId = song.id;
-    songCard.classList.add('clickable-song-card');
 
-    const coverArtUrl = song.cover_art_url ? `http://localhost:5000${song.cover_art_url}` : 'https://via.placeholder.com/200?text=No+Cover';
-    const musicFileUrl = `http://localhost:5000${song.file_path}`;
+    const coverArtUrl = song.cover_art_url ? (song.cover_art_url.startsWith('http') ? song.cover_art_url : `http://localhost:5000${song.cover_art_url}`) : 'https://via.placeholder.com/200?text=No+Cover';
+    const musicFileUrl = song.file_path ? (song.file_path.startsWith('http') ? song.file_path : `http://localhost:5000${song.file_path}`) : '#';
 
     songCard.innerHTML = `
-        <img src="${coverArtUrl}" alt="${song.title} Cover">
-        <h3>${song.title}</h3>
-        <p>${song.artist}</p>
-        <audio controls class="audio-player">
+        <img src="${coverArtUrl}" alt="${song.title || 'Song'} Cover">
+        <h3>${song.title || 'Chưa có tên'}</h3>
+        <p>${song.artist || 'Nghệ sĩ không xác định'}</p>
+        <audio controls class="audio-player" preload="none">
             <source src="${musicFileUrl}" type="audio/mpeg">
             Trình duyệt của bạn không hỗ trợ thẻ audio.
         </audio>
     `;
-    songsContainer.appendChild(songCard);
 
-    // Gắn lại event listener cho card mới tạo (nếu cần thiết phải làm ở đây)
-    // Tuy nhiên, cách tiếp cận tốt hơn là ủy quyền sự kiện hoặc gắn sau khi tất cả card đã được render
-    // Trong code gốc, event listener được gắn sau khi forEach hoàn tất, điều đó là ổn.
-    // Để giữ nguyên cấu trúc, chúng ta sẽ gắn listener trong `renderSongs` sau vòng lặp.
-    // Nhưng vì chúng ta đã gọi `createAndAppendSongCard` trong vòng lặp, nên sẽ gắn ở ngoài sau khi renderSongs xong.
-    // Hoặc, nếu bạn muốn giữ listener ở đây, thì cần đảm bảo nó không bị gắn nhiều lần nếu có render lại.
+    const audioPlayer = songCard.querySelector('.audio-player');
+    audioPlayer.addEventListener('play', () => {
+        trackRecentlyPlayed(song.id);
+        trackPlayCount(song.id);
+    });
 
-    // Để đơn giản, giữ cách gắn listener sau khi toàn bộ DOM đã được cập nhật trong `renderSongs` hoặc 1 hàm riêng
+    // === PHẦN XỬ LÝ CHUYỂN TRANG KHI CLICK VÀO BÀI HÁT ===
+    songCard.addEventListener('click', (event) => {
+        // Ngăn chuyển trang nếu người dùng click vào trình phát nhạc
+        if (event.target.tagName === 'AUDIO' || event.target.closest('audio')) {
+            return;
+        }
+        // Nếu click vào bất cứ đâu khác trên card, chuyển đến trang chi tiết
+        if (song.id) {
+            window.location.href = `/songs/${song.id}`; // Đây là dòng code điều hướng
+        }
+    });
+
+    return songCard;
 }
 
 
-// Cập nhật hàm renderSongs để gắn event listener sau khi tất cả card được thêm vào DOM
-function renderSongs(songsToRender) {
-    songsContainer.innerHTML = ''; // Xóa các bài hát cũ
+function displayRecentlyPlayed() {
+    if (!recentlyPlayedContainer) return;
+    const recentlyPlayedIds = JSON.parse(localStorage.getItem('recentlyPlayed')) || [];
+    recentlyPlayedContainer.innerHTML = '';
+    if (recentlyPlayedIds.length === 0) {
+        recentlyPlayedContainer.innerHTML = '<p class="no-data-message">Bạn chưa nghe bài hát nào gần đây.</p>';
+        return;
+    }
+    const recentSongs = recentlyPlayedIds.map(id => allFetchedSongs.find(song => song.id === id)).filter(song => song);
+    recentSongs.forEach(song => {
+        recentlyPlayedContainer.appendChild(createIndexSongCardElement(song));
+    });
+}
 
+function displayMostPlayed() {
+    if (!mostPlayedContainer) return;
+    const playCounts = JSON.parse(localStorage.getItem('playCounts')) || {};
+    mostPlayedContainer.innerHTML = '';
+    const sortedSongIds = Object.entries(playCounts).sort(([, a], [, b]) => b - a).slice(0, MAX_MOST_PLAYED);
+    if (sortedSongIds.length === 0) {
+        mostPlayedContainer.innerHTML = '<p class="no-data-message">Dữ liệu về bài hát bạn thường nghe sẽ xuất hiện ở đây.</p>';
+        return;
+    }
+    const topSongs = sortedSongIds.map(([id]) => allFetchedSongs.find(song => song.id == id)).filter(song => song);
+    topSongs.forEach(song => {
+        mostPlayedContainer.appendChild(createIndexSongCardElement(song));
+    });
+}
+
+// --- CÁC HÀM LOGIC CHÍNH ---
+
+async function checkLoginStatus() {
+    const token = localStorage.getItem('jwtToken');
+    let isLoggedInUser = false;
+    if (token) {
+        try {
+            const decodedPayload = JSON.parse(atob(token.split('.')[1]));
+            if (headerUsernameSpan) headerUsernameSpan.textContent = decodedPayload.user.username;
+            if (loggedInNav) loggedInNav.style.display = 'flex';
+            if (loggedOutNav) loggedOutNav.style.display = 'none';
+            isLoggedInUser = true;
+        } catch (e) {
+            localStorage.removeItem('jwtToken');
+            if (loggedInNav) loggedInNav.style.display = 'none';
+            if (loggedOutNav) loggedOutNav.style.display = 'flex';
+        }
+    } else {
+        if (loggedInNav) loggedInNav.style.display = 'none';
+        if (loggedOutNav) loggedOutNav.style.display = 'flex';
+    }
+
+    await fetchAllSongs();
+
+    if (isLoggedInUser) {
+        if (personalizedSections) personalizedSections.style.display = 'block';
+        displayRecentlyPlayed();
+        displayMostPlayed();
+    } else {
+        if (personalizedSections) personalizedSections.style.display = 'none';
+    }
+
+    renderAllSongsOnIndex(allFetchedSongs);
+}
+
+if (logoutBtn) {
+    logoutBtn.addEventListener('click', () => {
+        localStorage.removeItem('jwtToken');
+        window.location.reload();
+    });
+}
+
+function renderAllSongsOnIndex(songsToRender) {
+    if (!songsContainer) return;
+    songsContainer.innerHTML = '';
     if (!songsToRender || songsToRender.length === 0) {
-        if (searchInput.value.trim() !== "" && allFetchedSongs.length > 0) {
-            songsContainer.innerHTML = '<p>Không tìm thấy bài hát nào phù hợp với tìm kiếm của bạn.</p>';
-        } else if (allFetchedSongs.length === 0 && searchInput.value.trim() === "") {
-            songsContainer.innerHTML = '<p>Hiện tại chưa có bài hát nào trong hệ thống.</p>';
+        if (searchInput && searchInput.value.trim() !== "") {
+            songsContainer.innerHTML = '<p>Không tìm thấy bài hát nào phù hợp.</p>';
         } else {
-            // Nếu không có query tìm kiếm, và allFetchedSongs có bài hát, thì không nên vào đây trừ khi có lỗi
-            // Hoặc là khi fetch ban đầu không có bài hát
-             songsContainer.innerHTML = '<p>Chưa có bài hát nào trong danh sách.</p>';
+            songsContainer.innerHTML = '<p>Hiện tại chưa có bài hát nào trong hệ thống.</p>';
         }
         return;
     }
-
-    songsToRender.forEach(song => { // Giờ hàm createAndAppendSongCard chỉ tạo và thêm, không gắn listener
-        const songCard = document.createElement('div');
-        songCard.classList.add('song-card');
-        songCard.dataset.songId = song.id; 
-        songCard.classList.add('clickable-song-card');
-
-        const coverArtUrl = song.cover_art_url ? `http://localhost:5000${song.cover_art_url}` : 'https://via.placeholder.com/200?text=No+Cover';
-        const musicFileUrl = `http://localhost:5000${song.file_path}`;
-
-        songCard.innerHTML = `
-            <img src="${coverArtUrl}" alt="${song.title} Cover">
-            <h3>${song.title}</h3>
-            <p>${song.artist}</p>
-            <audio controls class="audio-player">
-                <source src="${musicFileUrl}" type="audio/mpeg">
-                Trình duyệt của bạn không hỗ trợ thẻ audio.
-            </audio>
-        `;
-        songsContainer.appendChild(songCard);
-    });
-
-    // Gắn event listeners cho tất cả các song card vừa được render
-    document.querySelectorAll('.clickable-song-card').forEach(card => {
-        card.addEventListener('click', (event) => {
-            if (event.target.tagName === 'AUDIO' || event.target.tagName === 'SOURCE' || event.target.closest('audio')) {
-                console.log('[INDEX.JS] Click vào audio player, không điều hướng.');
-                return; 
-            }
-            const songId = card.dataset.songId;
-            if (songId && String(songId).trim() !== "") {
-                window.location.href = `/songs/${songId}`; // Đảm bảo route này tồn tại ở backend nếu bạn muốn xem chi tiết bài hát
-                // Hoặc nếu bạn muốn làm gì khác khi click vào bài hát (ví dụ: phát nhạc trong một player cố định)
-                // thì xử lý ở đây.
-            } else {
-                console.error('[INDEX.JS] songId không hợp lệ hoặc rỗng:', songId);
-                alert('Lỗi: ID bài hát không hợp lệ.');
-            }
-        });
+    songsToRender.forEach(song => {
+        songsContainer.appendChild(createIndexSongCardElement(song));
     });
 }
 
-
-// Hàm fetch danh sách bài hát từ Backend
-async function fetchSongs() {
+async function fetchAllSongs() {
+    if (allFetchedSongs.length > 0) return;
     try {
         const response = await fetch(`${API_BASE_URL}/songs`);
-        if (!response.ok) {
-            throw new Error(`HTTP error! status: ${response.status}`);
-        }
-        const songs = await response.json();
-        allFetchedSongs = songs; // Lưu lại tất cả bài hát
-        renderSongs(allFetchedSongs); // Hiển thị tất cả bài hát ban đầu
+        if (!response.ok) throw new Error(`HTTP error! status: ${response.status}`);
+        allFetchedSongs = await response.json();
     } catch (error) {
         console.error('Lỗi khi lấy danh sách bài hát:', error);
-        songsContainer.innerHTML = '<p class="error">Không thể tải danh sách bài hát. Vui lòng thử lại sau.</p>';
-        allFetchedSongs = []; // Đặt lại nếu có lỗi
+        if (songsContainer) songsContainer.innerHTML = '<p class="error">Không thể tải danh sách bài hát.</p>';
     }
 }
 
-// Hàm xử lý tìm kiếm
-function handleSearch() {
+/**
+ * HÀM XỬ LÝ TÌM KIẾM: Lọc và hiển thị lại danh sách
+ */
+function handleSearchOnIndex() {
+    if (!searchInput || !songsContainer) return;
     const query = searchInput.value.toLowerCase().trim();
 
-    if (!query) {
-        renderSongs(allFetchedSongs); // Nếu query rỗng, hiển thị tất cả bài hát
-        return;
+     // Logic để ẩn/hiện các mục "Nghe gần đây" và "Thường nghe nhất"
+    if (personalizedSections) {
+        // Kiểm tra xem người dùng có đang đăng nhập không (dựa vào trạng thái của nav)
+        const isLoggedIn = loggedInNav.style.display !== 'none';
+
+        if (query) {
+            // Nếu có từ khóa tìm kiếm, LUÔN LUÔN ẩn các mục cá nhân hóa
+            personalizedSections.style.display = 'none';
+        } else {
+            // Nếu không có từ khóa (ô tìm kiếm trống),
+            // hiển thị lại các mục cá nhân hóa CHỈ KHI người dùng đã đăng nhập.
+            if (isLoggedIn) {
+                personalizedSections.style.display = 'block';
+            } else {
+                personalizedSections.style.display = 'none';
+            }
+        }
     }
 
+    // Lọc mảng allFetchedSongs dựa trên query
     const filteredSongs = allFetchedSongs.filter(song => {
-        const titleMatch = song.title.toLowerCase().includes(query);
-        const artistMatch = song.artist.toLowerCase().includes(query);
+        const titleMatch = song.title && song.title.toLowerCase().includes(query);
+        const artistMatch = song.artist && song.artist.toLowerCase().includes(query);
         return titleMatch || artistMatch;
     });
 
-    renderSongs(filteredSongs); // Hiển thị các bài hát đã lọc
+    // Render lại danh sách chỉ với các bài hát đã được lọc
+    // Các bài hát này khi được tạo lại vẫn có sự kiện click để chuyển trang
+    renderAllSongsOnIndex(filteredSongs);
 }
 
-// Gắn Event Listeners cho thanh tìm kiếm
-searchButton.addEventListener('click', handleSearch);
+// --- GỌI HÀM KHI TẢI TRANG ---
+document.addEventListener('DOMContentLoaded', () => {
+    checkLoginStatus();
 
-searchInput.addEventListener('keyup', (event) => {
-    if (event.key === 'Enter') {
-        handleSearch();
+    // Gắn event listeners cho thanh tìm kiếm
+    if (searchButton && searchInput) {
+        // Tìm kiếm khi nhấn nút "Tìm"
+        searchButton.addEventListener('click', handleSearchOnIndex);
+
+        // Tìm kiếm khi nhấn phím Enter
+        searchInput.addEventListener('keyup', (event) => {
+            if (event.key === 'Enter') {
+                handleSearchOnIndex();
+            }
+        });
+        
+        // **TÌM KIẾM TRỰC TIẾP KHI GÕ**
+        // Sự kiện 'input' sẽ kích hoạt mỗi khi giá trị của ô input thay đổi
+        searchInput.addEventListener('input', handleSearchOnIndex);
     }
-    // Để có "live search" (tìm kiếm ngay khi gõ), bạn có thể bỏ comment dòng dưới
-    // hoặc thêm debounce để tối ưu hiệu suất nếu danh sách lớn.
-    // handleSearch(); 
-});
-// Thêm một listener cho sự kiện 'input' để xóa kết quả tìm kiếm nếu người dùng xóa hết text
-searchInput.addEventListener('input', () => {
-    if (searchInput.value.trim() === '') {
-        renderSongs(allFetchedSongs); // Hiển thị lại tất cả bài hát nếu ô tìm kiếm trống
+
+    // Kiểm tra xem có đang ở trang Khám Phá không
+    // Nếu tìm thấy phần tử #slidesContainer, có nghĩa là chúng ta đang ở trang khampha.html
+    if (typeof initKhamphaPage === 'function') {
+        initKhamphaPage();
     }
 });
-
-
-// Xử lý nút Đăng xuất
-logoutBtn.addEventListener('click', () => {
-    localStorage.removeItem('jwtToken');
-    allFetchedSongs = []; // Xóa cache bài hát khi đăng xuất
-    searchInput.value = ''; // Xóa nội dung tìm kiếm
-    checkLoginStatus(); 
-});
-
-// Gọi hàm kiểm tra trạng thái đăng nhập khi trang được tải
-document.addEventListener('DOMContentLoaded', checkLoginStatus);

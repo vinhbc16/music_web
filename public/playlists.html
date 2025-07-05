@@ -3,10 +3,39 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Web Nghe Nhạc - Trang Chủ</title>
+    <title>Playlists - Ứng Dụng Nghe Nhạc</title>
+    <link rel="stylesheet" href="css/index.css"> <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0-beta3/css/all.min.css">
     <link rel="stylesheet" href="css/index.css">
-    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0-beta3/css/all.min.css">
-    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.7.2/css/all.min.css" integrity="sha512-Evv84Mr4kqVGRNSgIGL/F/aIDqQb7xQ2vcrdIwxfjThSH8CSR7PBEakCr51Ck+w+/U6swU2Im1vVX0SVk9ABhg==" crossorigin="anonymous" referrerpolicy="no-referrer" />
+    <style>
+        /* CSS riêng cho trang playlists nếu cần */
+        .container{
+            max-width: 1200px;
+            margin: 0 auto;
+            padding: 20px;
+        }
+        .page-title {
+            text-align: center;
+            font-size: 2.5rem;
+            color: #007bff;
+            margin: 30px 0;
+        }
+        .genre-playlist {
+            margin-bottom: 50px;
+        }
+        .genre-playlist h2 {
+            font-size: 2rem; /* Kích thước tiêu đề thể loại */
+            color: #343a40;
+            margin-bottom: 25px;
+            padding-bottom: 10px;
+            border-bottom: 3px solid #007bff;
+            display: inline-block;
+        }
+        .genre-title-container {
+            text-align: left; /* Hoặc center */
+            margin-bottom: 20px;
+        }
+        /* song-grid và song-card sẽ được kế thừa từ index.css */
+    </style>
 </head>
 <body>
     <header>
@@ -34,37 +63,18 @@
     </header>
 
     <main class="container">
-        <div id="personalized-sections" style="display: none;">
-            <section id="recently-played-section" class="user-specific-section">
-                <h2>Nghe gần đây</h2>
-                <div id="recently-played-container" class="song-grid">
-                    </div>
-            </section>
-
-            <section id="most-played-section" class="user-specific-section">
-                <h2>Thường nghe nhất</h2>
-                <div id="most-played-container" class="song-grid">
-                    </div>
-            </section>
+        <h1 class="page-title"><i class="fas fa-headphones-alt"></i> Playlists Hôm Nay</h1>
+        
+        <div id="genre-playlists-container">
+            <p>Đang tải playlists...</p>
         </div>
-
-        <section id="user-dashboard" style="display: none;">
-            <h2>Thông tin cá nhân</h2>
-            <p>Bạn đã đăng nhập thành công!</p>
-        </section>
-
-        <section id="songs-section">
-            <h2>Danh sách bài hát</h2>
-            <div id="songs-container" class="song-grid">
-                </div>
-        </section>
-
-        </main>
+    </main>
 
     <footer>
         <p>&copy; 2024 Ứng Dụng Nghe Nhạc</p>
     </footer>
 
     <script src="js_fe/index.js"></script>
+    <script src="js_fe/playlists.js"></script>
 </body>
 </html>

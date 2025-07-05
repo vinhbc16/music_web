@@ -1,0 +1,164 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Khám Phá - Ứng Dụng Nghe Nhạc</title>
+    <link rel="stylesheet" href="css/index.css"> 
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0-beta3/css/all.min.css">
+    <style>
+        /* CSS cho banner slider */
+        /* 1. CSS cho khung chứa ngoài cùng của slider */
+.banner-slider {
+    width: 100%;
+    max-width: 1200px;
+    margin: 30px auto;
+    overflow: hidden;
+    position: relative;
+    border-radius: 10px;
+    box-shadow: 0 4px 15px rgba(0, 0, 0, 0.2);
+    background-color: #f0f2f5; /* Màu nền lót trong lúc tải ảnh */
+
+}
+
+/* 2. CSS cho container chứa các slide */
+.slides-container {
+    display: flex;
+    max-width: 100%;
+    max-height: 100%;
+    transition: transform 0.5s ease-in-out;
+}
+
+/* 3. CSS cho mỗi slide (KHỐI QUAN TRỌNG NHẤT ĐỂ CĂN GIỮA) */
+.slide {
+    min-width: 100%;
+    height: 500px; /* Đặt chiều cao cố định cho slide */
+    box-sizing: border-box;
+}
+
+/* 4. CSS cho thẻ <img> bên trong slide */
+.slide img {
+    /* Cho phép ảnh co giãn nhưng không vượt quá kích thước của slide */
+    max-width: 100%;
+    max-height: 100%;
+    width: 100%; /* Đảm bảo ảnh luôn chiếm toàn bộ chiều rộng của slide */
+    height: 100%; /* Đảm bảo ảnh luôn chiếm toàn bộ chiều cao của slide */
+    /* Đảm bảo toàn bộ ảnh luôn hiển thị, giữ đúng tỷ lệ, không bị cắt xén */
+    object-fit: cover; 
+    cursor: pointer; /* Thêm con trỏ tay khi hover */
+}
+
+/* 5. CSS cho các nút bấm (Giữ nguyên) */
+.slider-btn {
+    position: absolute;
+    top: 50%;
+    transform: translateY(-50%);
+    background-color: rgba(0, 0, 0, 0.5);
+    color: white;
+    border: none;
+    padding: 15px;
+    cursor: pointer;
+    font-size: 1.5rem;
+    z-index: 10;
+    border-radius: 50%;
+    width: 50px;
+    height: 50px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+}
+.slider-btn:hover {
+    background-color: rgba(0, 0, 0, 0.8);
+}
+.prev-btn {
+    left: 20px;
+}
+.next-btn {
+    right: 20px;
+}
+
+        /* CSS cho các khu vực nhạc */
+        .music-category-section {
+            margin-top: 40px;
+            padding: 0 20px; /* Thêm padding cho container */
+        }
+
+        .music-category-section h2 {
+            text-align: center;
+            font-size: 2rem;
+            color: #007bff;
+            margin-bottom: 30px;
+            border-bottom: 2px solid #007bff;
+            padding-bottom: 10px;
+            display: inline-block; /* Để border bottom vừa với text */
+        }
+        .section-title-container { /* Để căn giữa tiêu đề */
+            text-align: center;
+             margin-bottom: 30px;
+        }
+
+        /* Tái sử dụng .song-grid và .song-card từ index.css */
+        /* Nếu có tùy chỉnh riêng cho trang khám phá thì thêm ở đây */
+
+    </style>
+</head>
+<body>
+    <header>
+        <nav>
+            <a href="/index.html" class="nav-link">Trang Chủ</a> <a href="/khampha.html" class="nav-link active">Khám phá</a> <a href="/playlists.html" class="nav-link">Playlist</a>
+            <a href="bxh.html" class="nav-link">BXH</a>
+
+            <div class="search-container">
+                <input type="text" id="searchInput" placeholder="Tìm kiếm bài hát, nghệ sĩ...">
+                <button id="searchButton">Tìm</button>
+            </div>
+
+            <div id="loggedInNav" style="display: none;">
+                <a href="/my_favorites.html" id="mySongsBtn" class="nav-button" style="margin-right: 10px;">Bài hát của tôi</a>
+                Chào mừng, <span id="headerUsernameSpan"></span>!
+                <button id="logoutBtn" class="nav-button">Đăng xuất</button>
+            </div>
+            <!-- <div id="loggedOutNav">
+                <a href="login_register.html" class="nav-button">Đăng nhập</a>
+            </div> -->
+        </nav>
+    </header>
+
+    <main class="container">
+        <section class="banner-slider">
+            <div class="slides-container" id="slidesContainer">
+                <div class="slide"><img src="assets/banner/1744259159177_org.jpg" alt="Banner 1"></div>
+                <div class="slide"><img src="assets/banner/1748870731728_org.jpg" alt="Banner 2"></div>
+                <div class="slide"><img src="assets/banner/1748946777689_org.jpg" alt="Banner 3"></div>
+                </div>
+            <button class="slider-btn prev-btn" id="prevBtn"><i class="fas fa-chevron-left"></i></button>
+            <button class="slider-btn next-btn" id="nextBtn"><i class="fas fa-chevron-right"></i></button>
+        </section>
+
+        <section class="music-category-section">
+            <div class="section-title-container">
+                 <h2><i class="fas fa-compact-disc"></i> Vũ Trụ Nhạc Việt</h2>
+            </div>
+            <div id="vn-songs-container" class="song-grid">
+                <p>Đang tải nhạc Việt...</p>
+            </div>
+        </section>
+
+        <section class="music-category-section">
+             <div class="section-title-container">
+                <h2><i class="fas fa-globe-americas"></i> Thế Giới Âm Nhạc Quốc Tế</h2>
+            </div>
+            <div id="intl-songs-container" class="song-grid">
+                <p>Đang tải nhạc quốc tế...</p>
+            </div>
+        </section>
+    </main>
+
+    <footer>
+        <p>&copy; 2024 Ứng Dụng Nghe Nhạc</p>
+    </footer>
+
+    <script src="js_fe/index.js"></script>
+    <script src="js_fe/khampha.js"></script>
+</body>
+</html>

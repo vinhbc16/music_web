@@ -1,0 +1,56 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Bảng Xếp Hạng - Ứng Dụng Nghe Nhạc</title>
+    <link rel="stylesheet" href="css/index.css"> <link rel="stylesheet" href="css/bxh.css">   <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0-beta3/css/all.min.css">
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+</head>
+<body>
+    <header>
+        <nav>
+            <a href="index.html" class="nav-link">Trang Chủ</a>
+            <a href="khampha.html" class="nav-link">Khám phá</a>
+            <a href="playlists.html" class="nav-link">Playlist</a> 
+            <a href="bxh.html" class="nav-link active">BXH</a> <div class="search-container">
+                <input type="text" id="searchInput" placeholder="Tìm kiếm bài hát, nghệ sĩ...">
+                <button id="searchButton">Tìm</button>
+            </div>
+
+            <div id="loggedInNav" style="display: none;">
+                <a href="my_favorites.html" id="mySongsBtn" class="nav-button" style="margin-right: 10px;">Bài hát của tôi</a>
+                Chào mừng, <span id="headerUsernameSpan"></span>!
+                <button id="logoutBtn" class="nav-button">Đăng xuất</button>
+            </div>
+            <div id="loggedOutNav">
+                <a href="login_register.html" class="nav-button">Đăng nhập</a>
+            </div>
+        </nav>
+    </header>
+
+    <main class="container">
+        <div class="bxh-header">
+            <h1>Bảng Xếp Hạng Âm Nhạc</h1>
+            <p>Dựa trên tổng số lượt nghe của người dùng</p>
+        </div>
+
+        <div class="chart-container">
+            <canvas id="bxhChart"></canvas>
+        </div>
+
+        <div class="song-list-container">
+            <h2>Top Bài Hát Được Nghe Nhiều Nhất</h2>
+            <div id="rankedSongsList">
+                <p>Đang tải bảng xếp hạng...</p>
+            </div>
+        </div>
+    </main>
+
+    <footer>
+        <p>&copy; 2024 Ứng Dụng Nghe Nhạc</p>
+    </footer>
+
+    <script src="js_fe/config.js"></script>
+    <script src="js_fe/index.js"></script> <script src="js_fe/bxh.js"></script>   </body>
+</html>
