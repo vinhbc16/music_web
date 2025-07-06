@@ -383,6 +383,16 @@ document.addEventListener('DOMContentLoaded', () => {
             if (!detailAudioPlayer.loop && isShuffleOn) {
                 playRandomSong();
             }
+            else if (!detailAudioPlayer.loop && !isShuffleOn) {
+                // === LOGIC MỚI CHO TỰ ĐỘNG CHUYỂN BÀI ===
+                // Lấy bài hát đầu tiên trong danh sách "Các bài hát khác"
+                const firstRelatedSong = document.querySelector('.related-song-card');
+                if (firstRelatedSong) {
+                    // Lấy songId và chuyển trang
+                    const nextSongId = firstRelatedSong.dataset.songId;
+                    window.location.href = `/songs/${nextSongId}`;
+                }
+            }
         });
     }
 });
